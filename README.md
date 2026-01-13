@@ -194,8 +194,17 @@ lifecaptureos/
 - [x] Backend with Ollama integration
 - [x] Firmware (ESP32-CAM)
 - [x] Android app
-- [ ] End-to-end testing
-- [ ] Production hardening
+- [x] End-to-end testing
+- [x] Production hardening
+
+## Roadmap & Future Work
+
+While the current version is built natively in Kotlin, we are actively developing a **React Native** version of the app to provide a cross-platform experience (iOS and Android) from a single codebase.
+
+### Planned Features
+- [ ] iOS Support (via React Native)
+- [ ] Improved Cloud Sync
+- [ ] Advanced AI Video Templates
 
 ## License
 
