@@ -1,0 +1,99 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+ENV/
+env/
+
+# Backend
+backend/data/
+backend/.env
+
+# ESP-IDF
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/.config
+
+# Android
+android/.gradle/
+android/.idea/
+android/local.properties
+android/app/build/
+android/build/
+android/captures/
+android/*.iml
+android/*.apk
+android/*.aab
+android/keystore.properties
+android/*.jks
+
+# IDEs and Tools
+.cursor/
+.gemini-clipboard/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+
+# Local artifacts and logs
+logs/
+data/
+*.log
+COM*
+nul
+ui.xml
+
+# SQLite sidecar files
+*.db-shm
+*.db-wal
+
+# Android
+android/.gradle/
+android/.idea/
+android/local.properties
+android/app/build/
+android/build/
+android/captures/
+android/*.iml
+android/*.apk
+android/*.aab
+android/keystore.properties
+android/*.jks
+google-services.json
+
+# Web UI and generic node_modules
+node_modules/
+backend/webui/node_modules/
+backend/webui/dist/
+
+# Project Custom Docs and Scripts
+scripts/
+AGENTS.md
+GEMINI.md
+CLAUDE.md

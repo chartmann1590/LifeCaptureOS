@@ -1,0 +1,44 @@
+
+@router.post("/upload/image")
+async def upload_image_simple(
+    request: Request,
+    device: Device = Depends(get_current_device),
+    db: Session = Depends(get_db)
+):
+    """Simple single-request upload for MVP firmware."""
+    media_id = request.headers.get("X-Media-ID")
+    if not media_id:
+        import uuid
+        media_id = f"IMG_{uuid.uuid4().hex[:8]}"
+
+    body = await request.body()
+    size = len(body)
+    if size == 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty body")
+
+    filename = f"{media_id}.jpg"
+    date_str = datetime.now().strftime("%Y/%m/%d")
+    save_dir = settings.media_path / date_str
+    save_dir.mkdir(parents=True, exist_ok=True)
+    
+    file_path = save_dir / filename
+    with open(file_path, "wb") as f:
+        f.write(body)
+        
+    media_item = Media(
+        device_id=device.id,
+        media_id=media_id,
+        type=MediaType.IMAGE,
+        captured_at=datetime.now(timezone.utc),
+        filename=filename,
+        media_path=str(file_path.relative_to(settings.storage_path)),
+        size_bytes=size,
+        upload_state=UploadState.COMPLETED,
+        upload_progress=100.0,
+        resolution="1600x1200"
+    )
+    db.add(media_item)
+    db.commit()
+    db.refresh(media_item)
+    
+    return JSONResponse({"ok": True, "media_id": media_id})
