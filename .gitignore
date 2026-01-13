@@ -45,6 +45,8 @@ android/*.apk
 android/*.aab
 android/keystore.properties
 android/*.jks
+android/*.txt
+*.hprof
 
 # IDEs and Tools
 .cursor/
@@ -85,6 +87,8 @@ android/*.apk
 android/*.aab
 android/keystore.properties
 android/*.jks
+android/*.txt
+*.hprof
 google-services.json
 
 # Web UI and generic node_modules
