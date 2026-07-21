@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.charles.LifeCaptureOS"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.charles.LifeCaptureOS"
         minSdk = 26  // Android 8.0+ (required for BLE features)
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
 
