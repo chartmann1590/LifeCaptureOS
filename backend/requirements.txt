@@ -3,7 +3,7 @@ uvicorn[standard]==0.27.0
 sqlalchemy==2.0.25
 pydantic==2.5.3
 pydantic-settings==2.1.0
-python-multipart==0.0.6
+python-multipart==0.0.31
 aiofiles==23.2.1
 httpx==0.26.0
 pillow==12.3.0
