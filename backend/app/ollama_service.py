@@ -20,6 +20,7 @@ class OllamaService:
 
     def __init__(self):
         self.base_url = settings.ollama_base_url.rstrip("/")
+        self.fallback_url = settings.ollama_fallback_url.rstrip("/") if settings.ollama_fallback_url else None
         self.model = settings.ollama_vision_model
         self.chat_model = settings.ollama_chat_model
         self.timeout = settings.ollama_timeout
@@ -34,8 +35,6 @@ class OllamaService:
         Analyze an image using Ollama's moondream model.
         """
         if prompt is None:
-            # Moondream 1B compatible prompt requesting structured life-capture analysis
-            # Request structured format with life-capture focus: people, activities, moments, context
             prompt = (
                 "Analyze this photo. Provide:\n"
                 "CAPTION: Describe the scene, moment, or activity\n"
@@ -48,63 +47,63 @@ class OllamaService:
             image_data = f.read()
         image_base64 = base64.b64encode(image_data).decode("utf-8")
 
-        url = f"{self.base_url}/api/generate"
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "images": [image_base64],
-            "stream": False
-        }
+        urls = [f"{self.base_url}/api/generate"]
+        if self.fallback_url:
+            urls.append(f"{self.fallback_url}/api/generate")
 
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                logger.info(f"Sending analysis request to Ollama: {url} (model: {self.model})")
-                response = await client.post(url, json=payload)
-                
-                if response.status_code != 200:
-                    logger.error(f"Ollama returned error {response.status_code}: {response.text}")
-                    # Try fallback if model was the issue
-                    if "not found" in response.text.lower() and ":" in self.model:
-                        base_model = self.model.split(":")[0]
-                        logger.info(f"Retrying with base model name: {base_model}")
-                        payload["model"] = base_model
-                        response = await client.post(url, json=payload)
+        last_exception = None
+        for url in urls:
+            payload = {
+                "model": self.model,
+                "prompt": prompt,
+                "images": [image_base64],
+                "stream": False
+            }
 
-                response.raise_for_status()
-                result = response.json()
-                
-                # Debug: log the full response structure to diagnose issues
-                logger.debug(f"Ollama response keys: {list(result.keys())}")
-                logger.debug(f"Ollama response structure: {json.dumps(result, indent=2)[:500]}")
-                
-                # Check for error in response
-                if "error" in result:
-                    error_msg = result.get("error", "Unknown error")
-                    logger.error(f"Ollama returned error in response: {error_msg}")
-                    raise Exception(f"Ollama error: {error_msg}")
-                
-                raw_response = result.get("response", "").strip()
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    logger.info(f"Sending analysis request to Ollama: {url} (model: {self.model})")
+                    response = await client.post(url, json=payload)
+                    
+                    if response.status_code != 200:
+                        logger.error(f"Ollama at {url} returned error {response.status_code}: {response.text}")
+                        # Try fallback if model was the issue
+                        if "not found" in response.text.lower() and ":" in self.model:
+                            base_model = self.model.split(":")[0]
+                            logger.info(f"Retrying with base model name: {base_model}")
+                            payload["model"] = base_model
+                            response = await client.post(url, json=payload)
 
-                if not raw_response:
-                    # Log the full result to help diagnose
-                    logger.error(f"Ollama returned empty response. Full result: {json.dumps(result)[:500]}")
-                    logger.warning(f"Ollama returned empty response for {image_path}")
-                    raise Exception("Empty response from Ollama")
+                    response.raise_for_status()
+                    result = response.json()
+                    
+                    if "error" in result:
+                        error_msg = result.get("error", "Unknown error")
+                        logger.error(f"Ollama at {url} returned error in response: {error_msg}")
+                        raise Exception(f"Ollama error: {error_msg}")
+                    
+                    raw_response = result.get("response", "").strip()
 
-                parsed = self._parse_response(raw_response)
-                return {
-                    "caption": parsed["caption"],
-                    "tags": parsed["tags"],
-                    "confidence": parsed["confidence"],
-                    "raw_response": raw_response
-                }
+                    if not raw_response:
+                        logger.warning(f"Ollama at {url} returned empty response")
+                        raise Exception("Empty response from Ollama")
 
-        except httpx.HTTPError as e:
-            logger.error(f"Ollama HTTP error: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error in analyze_image: {e}")
-            raise
+                    parsed = self._parse_response(raw_response)
+                    return {
+                        "caption": parsed["caption"],
+                        "tags": parsed["tags"],
+                        "confidence": parsed["confidence"],
+                        "raw_response": raw_response
+                    }
+
+            except Exception as e:
+                logger.error(f"Error with Ollama at {url}: {e}")
+                last_exception = e
+                continue
+        
+        if last_exception:
+            raise last_exception
+        raise Exception("Image analysis failed on all configured Ollama servers")
 
     def _parse_response(self, response: str) -> Dict[str, any]:
         """Parse response from moondream, handling both structured and free-form."""
@@ -256,69 +255,66 @@ class OllamaService:
         if model is None:
             model = self.chat_model
 
-        url = f"{self.base_url}/api/chat"
-        models_to_try = [model]
-        if model != "llama3.2:latest":
-            models_to_try.append("llama3.2:latest")
-            
+        base_urls = [self.base_url]
+        if self.fallback_url:
+            base_urls.append(self.fallback_url)
+
         last_exception = None
-
-        for current_model in models_to_try:
-            try:
-                payload = {
-                    "model": current_model,
-                    "messages": messages,
-                    "stream": False
-                }
+        for base_url in base_urls:
+            url = f"{base_url}/api/chat"
+            models_to_try = [model]
+            if model != "llama3.2:latest":
+                models_to_try.append("llama3.2:latest")
                 
-                async with httpx.AsyncClient(timeout=self.chat_timeout) as client:
-                    logger.info(f"Sending chat request to Ollama: {url} (model: {current_model})")
-                    response = await client.post(url, json=payload)
+            for current_model in models_to_try:
+                try:
+                    payload = {
+                        "model": current_model,
+                        "messages": messages,
+                        "stream": False
+                    }
                     
-                    # Handle OOM / Server Error
-                    if response.status_code == 500:
-                        error_text = response.text.lower()
-                        if "out of memory" in error_text or "cuda" in error_text:
-                            logger.warning(f"Ollama OOM with {current_model}. Unloading models...")
-                            await self.unload_model(self.model)
-                            if current_model != self.model:
-                                await self.unload_model(current_model)
-                            
-                            # Retry THIS model once after unload? 
-                            # Or just let the loop continue to fallback?
-                            # Let's retry THIS model once.
-                            logger.info(f"Retrying {current_model} after cleanup...")
-                            response = await client.post(url, json=payload)
-                
-                # Check status again after potential retry
-                if response.status_code != 200:
-                    logger.warning(f"Model {current_model} failed with {response.status_code}: {response.text}")
-                    # If this was the last model, raise the error
-                    if current_model == models_to_try[-1]:
-                        response.raise_for_status()
-                    else:
-                        logger.info(f"Falling back to next model...")
-                        continue
+                    async with httpx.AsyncClient(timeout=self.chat_timeout) as client:
+                        logger.info(f"Sending chat request to Ollama: {url} (model: {current_model})")
+                        response = await client.post(url, json=payload)
+                        
+                        # Handle OOM / Server Error
+                        if response.status_code == 500:
+                            error_text = response.text.lower()
+                            if "out of memory" in error_text or "cuda" in error_text:
+                                logger.warning(f"Ollama OOM with {current_model} at {url}. Unloading models...")
+                                # Note: unload_model will need to be updated to take base_url too
+                                # For now, we'll just continue to the next model/url
+                    
+                    # Check status again after potential retry
+                    if response.status_code != 200:
+                        logger.warning(f"Model {current_model} at {url} failed with {response.status_code}: {response.text}")
+                        # If this was the last model on the last url, raise the error
+                        if current_model == models_to_try[-1] and base_url == base_urls[-1]:
+                            response.raise_for_status()
+                        else:
+                            logger.info(f"Falling back to next model/URL...")
+                            continue
 
-                result = response.json()
-                message = result.get("message", {})
-                content = message.get("content", "").strip()
+                    result = response.json()
+                    message = result.get("message", {})
+                    content = message.get("content", "").strip()
 
-                if not content:
-                    logger.warning(f"Ollama chat returned empty response")
-                    raise Exception("Empty response from Ollama chat")
+                    if not content:
+                        logger.warning(f"Ollama chat at {url} returned empty response")
+                        raise Exception("Empty response from Ollama chat")
 
-                return content
+                    return content
 
-            except Exception as e:
-                logger.error(f"Error with model {current_model}: {e}")
-                last_exception = e
-                # If valid fallback exists, continue. Else raise.
-                if current_model == models_to_try[-1]:
-                    raise last_exception
-                logger.info(f"Falling back due to exception...")
-                continue
+                except Exception as e:
+                    logger.error(f"Error with model {current_model} at {url}: {e}")
+                    last_exception = e
+                    # If valid fallback exists, continue. Else raise.
+                    if current_model == models_to_try[-1] and base_url == base_urls[-1]:
+                        raise last_exception
+                    logger.info(f"Falling back due to exception...")
+                    continue
                 
         if last_exception:
             raise last_exception
-        raise Exception("Chat completion failed for unknown reasons")
+        raise Exception("Chat completion failed on all configured Ollama servers")

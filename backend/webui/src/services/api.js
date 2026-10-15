@@ -175,3 +175,28 @@ export function getDailySummaryVideoUrl(date) {
 export async function checkDailySummaryStatus(date) {
   return fetchJSON(`/ai/daily-summaries/${date}/status`);
 }
+
+/**
+ * Send a chat message to the AI
+ * @param {string} message - User message
+ * @param {string} conversationId - Optional conversation ID to continue a session
+ */
+export async function sendChatMessage(message, conversationId = null) {
+  return fetchJSON('/ai/chat', {
+    method: 'POST',
+    body: JSON.stringify({ 
+      message, 
+      conversation_id: conversationId 
+    }),
+  });
+}
+
+/**
+ * Clear a chat conversation history
+ * @param {string} conversationId - Conversation ID to clear
+ */
+export async function clearChatConversation(conversationId) {
+  return fetchJSON(`/ai/chat/${conversationId}`, {
+    method: 'DELETE',
+  });
+}

@@ -138,22 +138,6 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 app.include_router(web.router)
 
 
-# Root endpoint
-@app.get("/")
-async def root():
-    """API root endpoint."""
-    return {
-        "ok": True,
-        "service": "LifeCaptureOS Backend API",
-        "version": "1.0.0",
-        "endpoints": {
-            "device": "/device/*",
-            "media": "/media/*",
-            "docs": "/docs"
-        }
-    }
-
-
 @app.get("/health")
 async def health():
     """Health check endpoint."""

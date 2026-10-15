@@ -1,0 +1,29 @@
+{
+  "name": "lifecaptureos-expo",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+  },
+  "dependencies": {
+    "expo": "~54.0.31",
+    "expo-router": "^6.0.21",
+    "expo-status-bar": "~3.0.9",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.76.6"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "eslint": "^8.57.0",
+    "eslint-config-universe": "^15.0.3",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}

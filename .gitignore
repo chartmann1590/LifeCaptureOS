@@ -96,8 +96,16 @@ node_modules/
 backend/webui/node_modules/
 backend/webui/dist/
 
+# React Native / Expo
+react-native/.expo/
+react-native/.expo-shared/
+react-native/.npm-cache/
+react-native/.npm-global/
+react-native/.env
+
 # Project Custom Docs and Scripts
 scripts/
 AGENTS.md
 GEMINI.md
 CLAUDE.md
+.aider*

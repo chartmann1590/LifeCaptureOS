@@ -459,7 +459,11 @@ async def get_device_details(
     is_connected = False
     if device.last_seen:
         from datetime import datetime, timezone
-        time_diff = (datetime.now(timezone.utc) - device.last_seen).total_seconds()
+        now = datetime.now(timezone.utc)
+        last_seen = device.last_seen
+        if last_seen.tzinfo is None:
+            last_seen = last_seen.replace(tzinfo=timezone.utc)
+        time_diff = (now - last_seen).total_seconds()
         is_connected = time_diff < 300  # Connected if seen within 5 minutes
     
     return DeviceDetailResponse(

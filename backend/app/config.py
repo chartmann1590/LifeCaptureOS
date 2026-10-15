@@ -23,10 +23,11 @@ class Settings(BaseSettings):
 
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
+    ollama_fallback_url: Optional[str] = None
     ollama_vision_model: str = "moondream"
     ollama_chat_model: str = "llama3"  # Text model for chat
     ollama_timeout: int = 60
-    ollama_chat_timeout: int = 30  # Timeout for chat requests
+    ollama_chat_timeout: int = 60  # Timeout for chat requests
 
     # Security
     device_shared_secret: str = os.getenv("DEVICE_SHARED_SECRET", "change-this-in-production")
